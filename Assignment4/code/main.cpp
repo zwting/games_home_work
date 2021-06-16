@@ -11,12 +11,11 @@ int sel_idx = -1;
 
 int try_select_point(int x, int y)
 {
-    int radius = POINT_RADIUS * 2;
+    int radius = POINT_RADIUS * 1.5;
     for(int i = 0;i < control_points.size(); ++i)
     {
         auto vec = control_points[i] - cv::Point2f(x, y);
-        std::cout<<vec.dot(vec)<<std::endl;
-        if (vec.x * vec.x + vec.y * vec.y <= POINT_RADIUS * POINT_RADIUS)
+        if (vec.x * vec.x + vec.y * vec.y <= radius * radius)
         {
             return i;
         }
@@ -45,12 +44,14 @@ bool try_add_point(int x, int y)
 void mouse_handler(int event, int x, int y, int flags, void *userdata) 
 {
     static bool is_mouse_down = false;
+    int new_sel_idx = -1;
     switch (event)
     {
     case cv::EVENT_LBUTTONDOWN:
+    {
         is_mouse_down = true;
         sel_idx = try_select_point(x, y);
-        break;
+    }
     case cv::EVENT_MOUSEMOVE:
         if (is_mouse_down)
         {
@@ -63,24 +64,12 @@ void mouse_handler(int event, int x, int y, int flags, void *userdata)
         break;
     case cv::EVENT_LBUTTONUP:
         is_mouse_down = false;
-        if(sel_idx == -1 && try_add_point(x, y))
+        if(try_add_point(x, y))
         {
             sel_idx = control_points.size() - 1;
         }
         break;
-    case cv::EVENT_RBUTTONUP:
-        sel_idx = -1;
-        break;
     }
-    // if (event == cv::EVENT_LBUTTONDOWN)
-    // {
-    //     if(control_points.size() < 4) 
-    //     {
-    //         std::cout << "Left button of the mouse is clicked - position (" << x << ", "
-    //         << y << ")" << '\n';
-    //         control_points.emplace_back(x, y);
-    //     }
-    // }     
 }
 
 void naive_bezier(const std::vector<cv::Point2f> &points, cv::Mat &window) 
@@ -109,7 +98,7 @@ cv::Point2f recursive_bezier(const std::vector<cv::Point2f> &control_points, flo
         for(int i = 1; i < points.size(); ++i)
         {
             cv::Point2f vec = points[i] - points[i - 1];
-            tmp_list.push_back(vec * t);
+            tmp_list.push_back(points[i - 1] + vec * t);
         }
         points = tmp_list;
     }
@@ -120,16 +109,13 @@ void bezier(const std::vector<cv::Point2f> &control_points, cv::Mat &window)
 {
     // TODO: Iterate through all t = 0 to t = 1 with small steps, and call de Casteljau's 
     // recursive Bezier algorithm.
-    float dt = 0.01;
+    float dt = 0.001;
     float t = 0;
     while (t < 1)
     {
         auto pos = recursive_bezier(control_points, t);
-        int idx = static_cast<int>(pos.x) + static_cast<int>(pos.y) * WIDTH;
-        // window[idx] = 
         t += dt;
     }
-
 }
 
 int main() 
@@ -154,14 +140,14 @@ int main()
 
         if (control_points.size() == 4) 
         {
-            naive_bezier(control_points, window);
-            //   bezier(control_points, window);
+            // naive_bezier(control_points, window);
+            bezier(control_points, window);
 
             cv::imshow("Bezier Curve", window);
             cv::imwrite("my_bezier_curve.png", window);
-            key = cv::waitKey(0);
+            key = cv::waitKey(1);
 
-            return 0;
+            // return 0;
         }
 
         cv::imshow("Bezier Curve", window);
