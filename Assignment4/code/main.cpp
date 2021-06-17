@@ -114,6 +114,20 @@ void bezier(const std::vector<cv::Point2f> &control_points, cv::Mat &window)
     while (t < 1)
     {
         auto pos = recursive_bezier(control_points, t);
+        int x = static_cast<int>(pos.x);
+        int y = static_cast<int>(pos.y);
+        int max_x = std::min(x + 1, WIDTH);
+        int max_y = std::min(y + 1, HEIGHT);
+
+        int arr[] = {x, y, x, max_y, max_x, y, max_x, max_y};
+        for(int i = 0; i < 4; i++)
+        {
+            cv::Point2f p(arr[i * 2], arr[i * 2 + 1]);
+            cv::Point2f dis = p - pos;
+            float factor = std::max(1 - std::sqrt(dis.x * dis.x + dis.y * dis.y), 0.0f);
+            factor = factor > 0.5? 1 : factor;
+            window.at<cv::Vec3b>(p.y, p.x)[1] = std::min(window.at<cv::Vec3b>(p.y, p.x)[1] + 255 * factor, 255.0f);
+        }
         t += dt;
     }
 }
